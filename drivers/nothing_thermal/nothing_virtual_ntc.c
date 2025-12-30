@@ -11,6 +11,7 @@
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/version.h>
 #include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/proc_fs.h>
@@ -54,7 +55,13 @@ struct virtual_temp {
 
 	/* trip data */
 	int ntrips;
+	
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,4,0)
 	struct virtual_thermal_trip *trips;
+#else
+	struct virtual_thermal_trip *vtrips;
+    struct thermal_trip *trips;
+#endif
 	int prev_low_trip;
 	int prev_high_trip;
 	int prev_temp;
@@ -82,6 +89,7 @@ static int get_temp(struct thermal_zone_device *tz,
 	return 0;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,4,0)
 static int get_trip_type(struct thermal_zone_device *tz, int trip,
 				    enum thermal_trip_type *type)
 {
@@ -108,24 +116,6 @@ static int get_trip_temp(struct thermal_zone_device *tz, int trip,
 	return 0;
 }
 
-static int set_trip_temp(struct thermal_zone_device *tz, int trip,
-				    int temp)
-{
-	struct virtual_temp *hst = tz->devdata;
-	unsigned long flags;
-
-	if (trip >= hst->ntrips || trip < 0)
-		return -EDOM;
-
-	spin_lock_irqsave(&hst->trips_lock, flags);
-	hst->trips[trip].temperature = temp;
-	spin_unlock_irqrestore(&hst->trips_lock, flags);
-
-	pr_info("trips[%d].temperature = %d", trip, temp);
-
-	return 0;
-}
-
 static int get_trip_hyst(struct thermal_zone_device *tz, int trip,
 				    int *hyst)
 {
@@ -137,6 +127,29 @@ static int get_trip_hyst(struct thermal_zone_device *tz, int trip,
 	*hyst = hst->trips[trip].hysteresis;
 	return 0;
 }
+#endif
+
+static int set_trip_temp(struct thermal_zone_device *tz, int trip,
+				    int temp)
+{
+	struct virtual_temp *hst = tz->devdata;
+	unsigned long flags;
+
+	if (trip >= hst->ntrips || trip < 0)
+		return -EDOM;
+
+	spin_lock_irqsave(&hst->trips_lock, flags);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0)
+	hst->vtrips[trip].temperature = temp;
+#endif
+	hst->trips[trip].temperature = temp;
+	spin_unlock_irqrestore(&hst->trips_lock, flags);
+
+	pr_info("trips[%d].temperature = %d", trip, temp);
+
+	return 0;
+}
+
 
 static int set_trip_hyst(struct thermal_zone_device *tz, int trip,
 				    int hyst)
@@ -148,6 +161,9 @@ static int set_trip_hyst(struct thermal_zone_device *tz, int trip,
 		return -EDOM;
 
 	spin_lock_irqsave(&hst->trips_lock, flags);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0)
+	hst->vtrips[trip].hysteresis = hyst;
+#endif
 	hst->trips[trip].hysteresis = hyst;
 	spin_unlock_irqrestore(&hst->trips_lock, flags);
 
@@ -157,12 +173,14 @@ static int set_trip_hyst(struct thermal_zone_device *tz, int trip,
 }
 
 struct thermal_zone_device_ops virtual_thermal_zone_ops = {
-	.get_temp = get_temp,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,4,0)
 	.get_trip_type = get_trip_type,
 	.get_trip_temp = get_trip_temp,
-	.set_trip_temp = set_trip_temp,
 	.get_trip_hyst = get_trip_hyst,
+#endif
+	.set_trip_temp = set_trip_temp,
 	.set_trip_hyst = set_trip_hyst,
+	.get_temp = get_temp,
 };
 
 static int build_trips(struct virtual_temp *hst)
@@ -172,6 +190,14 @@ static int build_trips(struct virtual_temp *hst)
 	/* trips for qcom thermal-engine and thermal-hal */
 	hst->ntrips = TRIPS_NUM;
 
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0)
+	hst->vtrips = kcalloc(hst->ntrips, sizeof(*hst->vtrips), GFP_KERNEL);
+	if (!hst->vtrips) {
+		ret = -ENOMEM;
+		return ret;
+	}
+#endif
 	hst->trips = kcalloc(hst->ntrips, sizeof(*hst->trips), GFP_KERNEL);
 	if (!hst->trips) {
 		ret = -ENOMEM;
@@ -179,11 +205,25 @@ static int build_trips(struct virtual_temp *hst)
 	}
 
 	/* Initialize the trip configuration */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0)
+	for(i = 0; i < hst->ntrips; i++){
+		hst->vtrips[i].hysteresis = TRIPS_HYST;
+		hst->vtrips[i].temperature = TRIPS_TEMP;
+		hst->vtrips[i].type = THERMAL_TRIP_PASSIVE;
+	}
+
+	for (i = 0; i < hst->ntrips; i++) {
+        hst->trips[i].hysteresis  = hst->vtrips[i].hysteresis;
+        hst->trips[i].temperature = hst->vtrips[i].temperature;
+        hst->trips[i].type        = hst->vtrips[i].type;
+	}
+#else
 	for(i = 0; i < hst->ntrips; i++){
 		hst->trips[i].hysteresis = TRIPS_HYST;
 		hst->trips[i].temperature = TRIPS_TEMP;
 		hst->trips[i].type = THERMAL_TRIP_PASSIVE;
 	}
+#endif
 
 	return ret;
 }
@@ -232,9 +272,13 @@ static int virtual_temp_probe(struct platform_device *pdev)
 
 	for (i = 0; i < hst->ntrips; i++)
 		mask |= 1 << i;
-
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0)
+	tz_dev = thermal_zone_device_register_with_trips(dev_node->name, hst->trips, 
+			hst->ntrips, mask, hst, &virtual_thermal_zone_ops, NULL, 0, 0);
+	#else
 	tz_dev = thermal_zone_device_register(dev_node->name,
 			hst->ntrips, mask, hst, &virtual_thermal_zone_ops, NULL, 0, 0);
+	#endif
 	if (IS_ERR_OR_NULL(tz_dev)) {
 		pr_err("register thermal zone for virtual temp failed\n");
 		ret = -ENODEV;
@@ -256,6 +300,9 @@ static int virtual_temp_probe(struct platform_device *pdev)
 	return 0;
 err_free_trip:
 	kfree(hst->trips);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0)
+	kfree(hst->vtrips);
+#endif
 err_remove_id:
 	ida_simple_remove(&virtual_temp_ida, result);
 err_free_mem:
@@ -272,6 +319,9 @@ static int virtual_temp_remove(struct platform_device *pdev)
 		thermal_zone_device_unregister(hst->tzd);
 		if(hst->trips)
 			kfree(hst->trips);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0)
+			kfree(hst->vtrips);
+#endif
 		kfree(hst);
 	}
 
@@ -403,7 +453,11 @@ static int __init init_virtual_temp(void)
 {
     int ret = 0;
 	printk("Init virtual_temp dev\n");
-    virtual_temp_class = class_create(THIS_MODULE, "virtual_temp");
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0)
+		virtual_temp_class = class_create("virtual_temp");
+	#else
+		virtual_temp_class = class_create(THIS_MODULE, "virtual_temp");
+	#endif
     if (IS_ERR(virtual_temp_class)) {
         ret = PTR_ERR(virtual_temp_class);
         printk(KERN_ALERT "Failed to create class.\n");
