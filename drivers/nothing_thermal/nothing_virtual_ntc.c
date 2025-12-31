@@ -447,7 +447,7 @@ static ssize_t attr_show(struct device *dev,
 static struct class *virtual_temp_class;
 static struct device *dev;
 
-static DEVICE_ATTR(data, 0644, attr_show, attr_store);
+static DEVICE_ATTR(data, 0664, attr_show, attr_store);
 
 static int __init init_virtual_temp(void)
 {
