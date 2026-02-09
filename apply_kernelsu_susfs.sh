@@ -310,11 +310,20 @@ build_kernel() {
     
     # Build kernel Image
     print_info "Compiling kernel (this may take a while)..."
-    make O="${OUTPUT_DIR}" ARCH=${ARCH} -j${JOBS} Image.gz dtbs dtbo.img
+    make O="${OUTPUT_DIR}" ARCH=${ARCH} -j${JOBS} Image.gz dtbs || {
+        print_warn "Build with dtbs failed, trying without dtbs..."
+        make O="${OUTPUT_DIR}" ARCH=${ARCH} -j${JOBS} Image.gz
+    }
     
-    if [ ! -f "${OUTPUT_DIR}/arch/${ARCH}/boot/Image.gz" ]; then
-        print_error "Kernel build failed! Image.gz not found."
+    if [ ! -f "${OUTPUT_DIR}/arch/${ARCH}/boot/Image.gz" ] && [ ! -f "${OUTPUT_DIR}/arch/${ARCH}/boot/Image" ]; then
+        print_error "Kernel build failed! No Image found."
         exit 1
+    fi
+    
+    # If Image.gz doesn't exist but Image does, compress it
+    if [ ! -f "${OUTPUT_DIR}/arch/${ARCH}/boot/Image.gz" ] && [ -f "${OUTPUT_DIR}/arch/${ARCH}/boot/Image" ]; then
+        print_info "Compressing Image..."
+        gzip -c "${OUTPUT_DIR}/arch/${ARCH}/boot/Image" > "${OUTPUT_DIR}/arch/${ARCH}/boot/Image.gz"
     fi
     
     print_info "Kernel built successfully!"
@@ -408,6 +417,14 @@ EOF
     if [ -f "${OUTPUT_DIR}/arch/${ARCH}/boot/dtbo.img" ]; then
         print_info "Copying dtbo.img..."
         cp "${OUTPUT_DIR}/arch/${ARCH}/boot/dtbo.img" ./
+    else
+        print_warn "dtbo.img not found, skipping..."
+    fi
+    
+    # Copy dtbs if they exist
+    if [ -d "${OUTPUT_DIR}/arch/${ARCH}/boot/dts" ]; then
+        print_info "Copying device tree blobs..."
+        find "${OUTPUT_DIR}/arch/${ARCH}/boot/dts" -name "*.dtb" -exec cp {} ./ \; 2>/dev/null || true
     fi
     
     # Create zip file
