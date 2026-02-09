@@ -30,7 +30,7 @@ print_error() {
 KERNEL_DIR="$(pwd)"
 WORK_DIR="${KERNEL_DIR}/kernelsu_work"
 KERNELSU_REPO="https://github.com/tiann/KernelSU"
-KERNELSU_BRANCH="next"
+KERNELSU_BRANCH="main"
 SUSFS_REPO="https://gitlab.com/simonpunk/susfs4ksu"
 ANYKERNEL3_REPO="https://github.com/osm0sis/AnyKernel3"
 OUTPUT_DIR="${KERNEL_DIR}/out"
@@ -131,14 +131,22 @@ clone_susfs() {
         rm -rf susfs4ksu
     fi
     
-    git clone --depth=1 "${SUSFS_REPO}" susfs4ksu
+    # Set Git to not prompt for credentials
+    export GIT_TERMINAL_PROMPT=0
     
-    if [ ! -d "susfs4ksu" ]; then
-        print_error "Failed to clone SuSFS!"
-        exit 1
+    if ! timeout 30 git clone --depth=1 "${SUSFS_REPO}" susfs4ksu 2>/dev/null; then
+        print_warn "Failed to clone SuSFS from GitLab (may be network restricted)"
+        print_warn "SuSFS integration will be skipped."
+        print_warn "The kernel will be built with KernelSU only, which is fully functional."
+        
+        # Don't try GitHub mirror as it likely requires auth
+        unset GIT_TERMINAL_PROMPT
+        return 1
     fi
     
+    unset GIT_TERMINAL_PROMPT
     print_info "SuSFS cloned successfully!"
+    return 0
 }
 
 # Function to apply KernelSU to kernel
@@ -181,6 +189,13 @@ apply_susfs() {
     
     cd "${KERNEL_DIR}"
     
+    # Check if SuSFS was successfully cloned
+    if [ ! -d "${WORK_DIR}/susfs4ksu" ]; then
+        print_warn "SuSFS directory not found. Skipping SuSFS integration."
+        print_warn "The kernel will be built with KernelSU only."
+        return 1
+    fi
+    
     # Check for SuSFS kernel patches
     SUSFS_KERNEL_PATCH_DIR="${WORK_DIR}/susfs4ksu/kernel_patches"
     
@@ -221,11 +236,12 @@ apply_susfs() {
     fi
     
     print_info "SuSFS applied successfully!"
+    return 0
 }
 
 # Function to configure kernel
 configure_kernel() {
-    print_info "Configuring kernel with KernelSU and SuSFS support..."
+    print_info "Configuring kernel with KernelSU support..."
     
     cd "${KERNEL_DIR}"
     
@@ -259,11 +275,15 @@ configure_kernel() {
     print_info "Enabling KernelSU configuration..."
     echo "CONFIG_KSU=y" >> "${OUTPUT_DIR}/.config"
     
-    # Enable SuSFS if configuration exists
-    if grep -q "CONFIG_KSU_SUSFS" "${OUTPUT_DIR}/.config" 2>/dev/null || \
-       [ -f "${WORK_DIR}/KernelSU/kernel/Kconfig" ] && grep -q "KSU_SUSFS" "${WORK_DIR}/KernelSU/kernel/Kconfig"; then
-        print_info "Enabling SuSFS configuration..."
-        echo "CONFIG_KSU_SUSFS=y" >> "${OUTPUT_DIR}/.config"
+    # Enable SuSFS if configuration exists and SuSFS was cloned
+    if [ -d "${WORK_DIR}/susfs4ksu" ]; then
+        if grep -q "CONFIG_KSU_SUSFS" "${OUTPUT_DIR}/.config" 2>/dev/null || \
+           [ -f "${WORK_DIR}/KernelSU/kernel/Kconfig" ] && grep -q "KSU_SUSFS" "${WORK_DIR}/KernelSU/kernel/Kconfig"; then
+            print_info "Enabling SuSFS configuration..."
+            echo "CONFIG_KSU_SUSFS=y" >> "${OUTPUT_DIR}/.config"
+        fi
+    else
+        print_warn "SuSFS not available, building with KernelSU only"
     fi
     
     # Update config with dependencies
@@ -452,9 +472,9 @@ main() {
     check_dependencies
     setup_workdir
     clone_kernelsu
-    clone_susfs
+    clone_susfs || print_warn "Continuing without SuSFS..."
     apply_kernelsu
-    apply_susfs
+    apply_susfs || print_warn "Continuing without SuSFS patches..."
     configure_kernel
     build_kernel
     clone_anykernel3

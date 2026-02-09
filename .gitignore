@@ -175,3 +175,8 @@ sphinx_*/
 
 # Rust analyzer configuration
 /rust-project.json
+
+# KernelSU integration work directory
+kernelsu_work/
+out/
+*.zip
