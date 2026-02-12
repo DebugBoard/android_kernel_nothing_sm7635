@@ -1,13 +1,13 @@
-# KernelSU Integration Setup Guide
+# KernelSU-Next Integration Setup Guide
 
-This guide explains how to use the KernelSU integration script for the Nothing Phone SM7635 kernel.
+This guide explains how to use the KernelSU-Next integration script for the Nothing Phone SM7635 kernel.
 
 ## Overview
 
 The `apply_kernelsu_susfs.sh` script automates the process of:
-1. Integrating KernelSU into the kernel source
+1. Integrating KernelSU-Next into the kernel source
 2. Optionally integrating SuSFS for enhanced hiding capabilities
-3. Building the kernel with KernelSU support
+3. Building the kernel with KernelSU-Next support
 4. Creating a flashable AnyKernel3 zip package
 
 ## Prerequisites
@@ -52,13 +52,13 @@ sudo pacman -S base-devel git bc bison flex zip curl wget python3 clang
 ### Step-by-Step Process
 
 1. **Dependency Check**: Verifies all required tools are installed
-2. **Clone KernelSU**: Downloads the latest KernelSU from GitHub
+2. **Clone KernelSU-Next**: Downloads the latest KernelSU-Next from GitHub
 3. **Clone SuSFS**: Attempts to download SuSFS (optional, continues without it if unavailable)
-4. **Apply KernelSU**: Integrates KernelSU into the kernel source tree
+4. **Apply KernelSU-Next**: Integrates KernelSU-Next into the kernel source tree
    - Creates symlink in `drivers/kernelsu`
    - Updates `drivers/Makefile`
    - Updates `drivers/Kconfig`
-5. **Configure Kernel**: Generates kernel configuration with KernelSU enabled
+5. **Configure Kernel**: Generates kernel configuration with KernelSU-Next enabled
    - Sets `CONFIG_KSU=y`
    - Optionally sets `CONFIG_KSU_SUSFS=y` if SuSFS is available
 6. **Build Kernel**: Compiles the kernel with all CPU cores
@@ -73,7 +73,7 @@ android_kernel_nothing_sm7635/
 ├── SETUP_GUIDE.md             # This file
 ├── test_integration.sh        # Integration test script
 ├── kernelsu_work/             # Work directory (created by script)
-│   ├── KernelSU/             # KernelSU source
+│   ├── KernelSU-Next/        # KernelSU-Next source
 │   ├── susfs4ksu/            # SuSFS source (if available)
 │   └── AnyKernel3/           # AnyKernel3 packaging tool
 ├── out/                       # Build output directory
@@ -86,7 +86,7 @@ You can modify the script variables at the top of `apply_kernelsu_susfs.sh`:
 
 ```bash
 DEFCONFIG="gki_defconfig"              # Kernel configuration to use
-KERNELSU_BRANCH="main"                  # KernelSU branch
+KERNELSU_BRANCH="main"                  # KernelSU-Next branch
 ARCH=arm64                              # Target architecture
 ```
 
@@ -100,8 +100,8 @@ ARCH=arm64                              # Target architecture
 
 2. **SuSFS clone fails**
    - This is normal if GitLab is blocked
-   - The script will continue with KernelSU only
-   - KernelSU works perfectly fine without SuSFS
+   - The script will continue with KernelSU-Next only
+   - KernelSU-Next works perfectly fine without SuSFS
 
 3. **Out of memory during build**
    - Close other applications
@@ -206,6 +206,6 @@ This script is provided under GPL-2.0, consistent with the Linux kernel license.
 
 ## Credits
 
-- **KernelSU**: https://github.com/tiann/KernelSU
+- **KernelSU-Next**: https://github.com/KernelSU-Next/KernelSU-Next
 - **SuSFS**: https://gitlab.com/simonpunk/susfs4ksu
 - **AnyKernel3**: https://github.com/osm0sis/AnyKernel3

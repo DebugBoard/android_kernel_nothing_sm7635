@@ -1,6 +1,6 @@
-# KernelSU Integration Script
+# KernelSU-Next Integration Script
 
-This repository contains a script to automatically integrate KernelSU (and optionally SuSFS) into the Nothing Phone SM7635 kernel.
+This repository contains a script to automatically integrate KernelSU-Next (and optionally SuSFS) into the Nothing Phone SM7635 kernel.
 
 ## Prerequisites
 
@@ -37,10 +37,10 @@ sudo pacman -S aarch64-linux-gnu-gcc
 ## What the Script Does
 
 1. **Dependency Check**: Verifies all required build tools are installed
-2. **Clone KernelSU**: Downloads the latest KernelSU from the main branch
+2. **Clone KernelSU-Next**: Downloads the latest KernelSU-Next from the main branch
 3. **Clone SuSFS**: Attempts to download SuSFS (optional, continues without it if unavailable)
-4. **Apply Patches**: Integrates KernelSU and SuSFS into the kernel source
-5. **Configure Kernel**: Sets up kernel configuration with KernelSU support enabled
+4. **Apply Patches**: Integrates KernelSU-Next and SuSFS into the kernel source
+5. **Configure Kernel**: Sets up kernel configuration with KernelSU-Next support enabled
 6. **Build Kernel**: Compiles the kernel with the new features
 7. **Create AK3 Zip**: Packages everything into a flashable AnyKernel3 zip
 
@@ -59,7 +59,7 @@ sudo pacman -S aarch64-linux-gnu-gcc
 You can modify the following variables at the top of the script if needed:
 
 - `DEFCONFIG`: Default kernel configuration (default: `gki_defconfig`)
-- `KERNELSU_BRANCH`: KernelSU branch to use (default: `main`)
+- `KERNELSU_BRANCH`: KernelSU-Next branch to use (default: `main`)
 - `ARCH`: Target architecture (default: `arm64`)
 
 ## Safety Features
@@ -110,7 +110,7 @@ If you encounter compiler errors:
 ## Support
 
 For issues related to:
-- **KernelSU**: Visit [KernelSU GitHub](https://github.com/tiann/KernelSU)
+- **KernelSU-Next**: Visit [KernelSU-Next GitHub](https://github.com/KernelSU-Next/KernelSU-Next)
 - **SuSFS**: Visit [SuSFS GitLab](https://gitlab.com/simonpunk/susfs4ksu)
 - **This kernel**: Open an issue in this repository
 - **AnyKernel3**: Visit [AnyKernel3 GitHub](https://github.com/osm0sis/AnyKernel3)

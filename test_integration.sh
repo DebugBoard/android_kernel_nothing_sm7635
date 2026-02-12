@@ -1,11 +1,11 @@
 #!/bin/bash
-# Test script for KernelSU integration
+# Test script for KernelSU-Next integration
 # This tests all the components without doing a full kernel build
 
 # Don't exit on error - we want to see all test results
 set +e
 
-echo "=== KernelSU Integration Test ==="
+echo "=== KernelSU-Next Integration Test ==="
 echo ""
 
 # Source the main script (but main won't run because of the guard)
@@ -33,39 +33,39 @@ else
 fi
 echo ""
 
-# Test 3: KernelSU cloning
-echo "Test 3: Cloning KernelSU..."
+# Test 3: KernelSU-Next cloning
+echo "Test 3: Cloning KernelSU-Next..."
 clone_kernelsu
 if [ -d "kernelsu_work/KernelSU/kernel" ]; then
-    echo "✓ KernelSU cloned successfully"
+    echo "✓ KernelSU-Next cloned successfully"
     echo "  Files found: $(ls kernelsu_work/KernelSU/kernel/*.c 2>/dev/null | wc -l) C files"
 else
-    echo "✗ KernelSU not cloned properly"
+    echo "✗ KernelSU-Next not cloned properly"
     exit 1
 fi
 echo ""
 
-# Test 4: KernelSU application
-echo "Test 4: Applying KernelSU to kernel..."
+# Test 4: KernelSU-Next application
+echo "Test 4: Applying KernelSU-Next to kernel..."
 apply_kernelsu
 if [ -L "drivers/kernelsu" ]; then
-    echo "✓ KernelSU symlink created"
+    echo "✓ KernelSU-Next symlink created"
 else
-    echo "✗ KernelSU symlink not created"
+    echo "✗ KernelSU-Next symlink not created"
     exit 1
 fi
 
 if grep -q "kernelsu" drivers/Makefile; then
-    echo "✓ KernelSU added to drivers/Makefile"
+    echo "✓ KernelSU-Next added to drivers/Makefile"
 else
-    echo "✗ KernelSU not in drivers/Makefile"
+    echo "✗ KernelSU-Next not in drivers/Makefile"
     exit 1
 fi
 
 if grep -q "kernelsu/Kconfig" drivers/Kconfig; then
-    echo "✓ KernelSU added to drivers/Kconfig"
+    echo "✓ KernelSU-Next added to drivers/Kconfig"
 else
-    echo "✗ KernelSU not in drivers/Kconfig"
+    echo "✗ KernelSU-Next not in drivers/Kconfig"
     exit 1
 fi
 echo ""
@@ -80,14 +80,14 @@ else
     exit 1
 fi
 
-# Verify KernelSU Kconfig exists
+# Verify KernelSU-Next Kconfig exists
 if [ -f "kernelsu_work/KernelSU/kernel/Kconfig" ]; then
-    echo "✓ KernelSU Kconfig file found"
+    echo "✓ KernelSU-Next Kconfig file found"
     if grep -q "config KSU" kernelsu_work/KernelSU/kernel/Kconfig; then
-        echo "✓ KernelSU Kconfig has CONFIG_KSU option"
+        echo "✓ KernelSU-Next Kconfig has CONFIG_KSU option"
     fi
 else
-    echo "⚠ KernelSU Kconfig not found"
+    echo "⚠ KernelSU-Next Kconfig not found"
 fi
 echo ""
 

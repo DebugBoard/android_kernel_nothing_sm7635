@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script to apply KernelSU next and SuSFS to Nothing Phone sm7635 kernel
+# Script to apply KernelSU-Next and SuSFS to Nothing Phone sm7635 kernel
 # This script is designed to run on Arch Linux
 # Author: Automated kernel integration script
 # License: GPL-2.0
@@ -29,7 +29,7 @@ print_error() {
 # Script configuration
 KERNEL_DIR="$(pwd)"
 WORK_DIR="${KERNEL_DIR}/kernelsu_work"
-KERNELSU_REPO="https://github.com/tiann/KernelSU"
+KERNELSU_REPO="https://github.com/KernelSU-Next/KernelSU-Next"
 KERNELSU_BRANCH="main"
 SUSFS_REPO="https://gitlab.com/simonpunk/susfs4ksu"
 ANYKERNEL3_REPO="https://github.com/osm0sis/AnyKernel3"
@@ -48,7 +48,7 @@ CLANG_TRIPLE="aarch64-linux-gnu-"
 JOBS=$(nproc)
 
 print_info "========================================"
-print_info "KernelSU + SuSFS Integration Script"
+print_info "KernelSU-Next + SuSFS Integration Script"
 print_info "========================================"
 print_info "Kernel Directory: ${KERNEL_DIR}"
 print_info "Work Directory: ${WORK_DIR}"
@@ -99,25 +99,25 @@ setup_workdir() {
     print_info "Work directory created: ${WORK_DIR}"
 }
 
-# Function to clone KernelSU
+# Function to clone KernelSU-Next
 clone_kernelsu() {
-    print_info "Cloning KernelSU (${KERNELSU_BRANCH} branch)..."
+    print_info "Cloning KernelSU-Next (${KERNELSU_BRANCH} branch)..."
     
     cd "${WORK_DIR}"
     
     if [ -d "KernelSU" ]; then
-        print_warn "KernelSU directory exists. Removing..."
+        print_warn "KernelSU-Next directory exists. Removing..."
         rm -rf KernelSU
     fi
     
     git clone --depth=1 -b "${KERNELSU_BRANCH}" "${KERNELSU_REPO}" KernelSU
     
     if [ ! -d "KernelSU" ]; then
-        print_error "Failed to clone KernelSU!"
+        print_error "Failed to clone KernelSU-Next!"
         exit 1
     fi
     
-    print_info "KernelSU cloned successfully!"
+    print_info "KernelSU-Next cloned successfully!"
 }
 
 # Function to clone SuSFS
@@ -137,7 +137,7 @@ clone_susfs() {
     if ! timeout 30 git clone --depth=1 "${SUSFS_REPO}" susfs4ksu 2>/dev/null; then
         print_warn "Failed to clone SuSFS from GitLab (may be network restricted)"
         print_warn "SuSFS integration will be skipped."
-        print_warn "The kernel will be built with KernelSU only, which is fully functional."
+        print_warn "The kernel will be built with KernelSU-Next only, which is fully functional."
         
         # Don't try GitHub mirror as it likely requires auth
         unset GIT_TERMINAL_PROMPT
@@ -149,38 +149,38 @@ clone_susfs() {
     return 0
 }
 
-# Function to apply KernelSU to kernel
+# Function to apply KernelSU-Next to kernel
 apply_kernelsu() {
-    print_info "Applying KernelSU to kernel source..."
+    print_info "Applying KernelSU-Next to kernel source..."
     
     cd "${KERNEL_DIR}"
     
-    # Create symbolic link for KernelSU in kernel drivers
+    # Create symbolic link for KernelSU-Next in kernel drivers
     if [ -L "drivers/kernelsu" ]; then
-        print_warn "Removing existing KernelSU symlink..."
+        print_warn "Removing existing KernelSU-Next symlink..."
         rm -f drivers/kernelsu
     fi
     
     ln -sf "${WORK_DIR}/KernelSU/kernel" drivers/kernelsu
     
-    # Modify drivers/Makefile to include KernelSU
+    # Modify drivers/Makefile to include KernelSU-Next
     if ! grep -q "kernelsu" drivers/Makefile; then
-        print_info "Adding KernelSU to drivers/Makefile..."
+        print_info "Adding KernelSU-Next to drivers/Makefile..."
         echo "obj-\$(CONFIG_KSU) += kernelsu/" >> drivers/Makefile
     else
-        print_warn "KernelSU already in drivers/Makefile"
+        print_warn "KernelSU-Next already in drivers/Makefile"
     fi
     
-    # Modify drivers/Kconfig to include KernelSU
+    # Modify drivers/Kconfig to include KernelSU-Next
     if ! grep -q "kernelsu/Kconfig" drivers/Kconfig; then
-        print_info "Adding KernelSU to drivers/Kconfig..."
+        print_info "Adding KernelSU-Next to drivers/Kconfig..."
         # Insert before the final 'endmenu' in drivers/Kconfig
         sed -i '/^endmenu$/i source "drivers/kernelsu/Kconfig"' drivers/Kconfig
     else
-        print_warn "KernelSU already in drivers/Kconfig"
+        print_warn "KernelSU-Next already in drivers/Kconfig"
     fi
     
-    print_info "KernelSU applied successfully!"
+    print_info "KernelSU-Next applied successfully!"
 }
 
 # Function to apply SuSFS to kernel
@@ -192,7 +192,7 @@ apply_susfs() {
     # Check if SuSFS was successfully cloned
     if [ ! -d "${WORK_DIR}/susfs4ksu" ]; then
         print_warn "SuSFS directory not found. Skipping SuSFS integration."
-        print_warn "The kernel will be built with KernelSU only."
+        print_warn "The kernel will be built with KernelSU-Next only."
         return 1
     fi
     
@@ -241,7 +241,7 @@ apply_susfs() {
 
 # Function to configure kernel
 configure_kernel() {
-    print_info "Configuring kernel with KernelSU support..."
+    print_info "Configuring kernel with KernelSU-Next support..."
     
     cd "${KERNEL_DIR}"
     
@@ -271,8 +271,8 @@ configure_kernel() {
     print_info "Generating defconfig: ${DEFCONFIG}"
     make O="${OUTPUT_DIR}" ARCH=${ARCH} ${DEFCONFIG}
     
-    # Enable KernelSU
-    print_info "Enabling KernelSU configuration..."
+    # Enable KernelSU-Next
+    print_info "Enabling KernelSU-Next configuration..."
     echo "CONFIG_KSU=y" >> "${OUTPUT_DIR}/.config"
     
     # Enable SuSFS if configuration exists and SuSFS was cloned
@@ -283,7 +283,7 @@ configure_kernel() {
             echo "CONFIG_KSU_SUSFS=y" >> "${OUTPUT_DIR}/.config"
         fi
     else
-        print_warn "SuSFS not available, building with KernelSU only"
+        print_warn "SuSFS not available, building with KernelSU-Next only"
     fi
     
     # Update config with dependencies
@@ -368,7 +368,7 @@ create_ak3_zip() {
 ## AnyKernel setup
 # begin properties
 properties() { '
-kernel.string=KernelSU + SuSFS by Auto Script
+kernel.string=KernelSU-Next + SuSFS by Auto Script
 do.devicecheck=0
 do.modules=0
 do.systemless=1
