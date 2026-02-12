@@ -54,7 +54,8 @@ sudo pacman -S base-devel git bc bison flex zip curl wget python3 clang
 1. **Dependency Check**: Verifies all required tools are installed
 2. **Clone KernelSU-Next**: Downloads the latest KernelSU-Next from GitHub
 3. **Clone SuSFS**: Attempts to download SuSFS (optional, continues without it if unavailable)
-4. **Apply KernelSU-Next**: Integrates KernelSU-Next into the kernel source tree
+4. **Apply KernelSU-Next**: Uses the official KernelSU-Next setup script to integrate into the kernel
+   - Runs `KernelSU-Next/kernel/setup.sh` which handles all integration automatically
    - Creates symlink in `drivers/kernelsu`
    - Updates `drivers/Makefile`
    - Updates `drivers/Kconfig`
@@ -72,8 +73,8 @@ android_kernel_nothing_sm7635/
 ├── KERNELSU_README.md         # Detailed documentation
 ├── SETUP_GUIDE.md             # This file
 ├── test_integration.sh        # Integration test script
+├── KernelSU-Next/             # KernelSU-Next repository (cloned by script)
 ├── kernelsu_work/             # Work directory (created by script)
-│   ├── KernelSU-Next/        # KernelSU-Next source
 │   ├── susfs4ksu/            # SuSFS source (if available)
 │   └── AnyKernel3/           # AnyKernel3 packaging tool
 ├── out/                       # Build output directory

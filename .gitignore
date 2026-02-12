@@ -178,5 +178,6 @@ sphinx_*/
 
 # KernelSU integration work directory
 kernelsu_work/
+KernelSU-Next/
 out/
 *.zip

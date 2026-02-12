@@ -39,7 +39,7 @@ sudo pacman -S aarch64-linux-gnu-gcc
 1. **Dependency Check**: Verifies all required build tools are installed
 2. **Clone KernelSU-Next**: Downloads the latest KernelSU-Next from the main branch
 3. **Clone SuSFS**: Attempts to download SuSFS (optional, continues without it if unavailable)
-4. **Apply Patches**: Integrates KernelSU-Next and SuSFS into the kernel source
+4. **Apply Patches**: Uses official KernelSU-Next setup script to integrate into the kernel source
 5. **Configure Kernel**: Sets up kernel configuration with KernelSU-Next support enabled
 6. **Build Kernel**: Compiles the kernel with the new features
 7. **Create AK3 Zip**: Packages everything into a flashable AnyKernel3 zip

@@ -99,25 +99,54 @@ setup_workdir() {
     print_info "Work directory created: ${WORK_DIR}"
 }
 
-# Function to clone KernelSU-Next
+# Function to clone and setup KernelSU-Next
 clone_kernelsu() {
     print_info "Cloning KernelSU-Next (${KERNELSU_BRANCH} branch)..."
     
-    cd "${WORK_DIR}"
+    cd "${KERNEL_DIR}"
     
-    if [ -d "KernelSU" ]; then
+    # Remove existing KernelSU-Next directory if it exists
+    if [ -d "KernelSU-Next" ]; then
         print_warn "KernelSU-Next directory exists. Removing..."
-        rm -rf KernelSU
+        rm -rf KernelSU-Next
     fi
     
-    git clone --depth=1 -b "${KERNELSU_BRANCH}" "${KERNELSU_REPO}" KernelSU
+    # Clone KernelSU-Next repository to kernel root
+    git clone --depth=1 -b "${KERNELSU_BRANCH}" "${KERNELSU_REPO}"
     
-    if [ ! -d "KernelSU" ]; then
+    if [ ! -d "KernelSU-Next" ]; then
         print_error "Failed to clone KernelSU-Next!"
         exit 1
     fi
     
     print_info "KernelSU-Next cloned successfully!"
+}
+
+# Function to apply KernelSU-Next using official setup script
+apply_kernelsu() {
+    print_info "Applying KernelSU-Next to kernel source..."
+    
+    cd "${KERNEL_DIR}"
+    
+    # Check if setup.sh exists
+    if [ ! -f "KernelSU-Next/kernel/setup.sh" ]; then
+        print_error "KernelSU-Next setup script not found!"
+        exit 1
+    fi
+    
+    # Make setup.sh executable
+    chmod +x KernelSU-Next/kernel/setup.sh
+    
+    # Run the official KernelSU-Next setup script
+    # The setup.sh script expects to be run from the kernel root
+    # and will create the necessary symlinks and modify Makefile/Kconfig
+    print_info "Running official KernelSU-Next setup script..."
+    if ! bash KernelSU-Next/kernel/setup.sh; then
+        print_error "KernelSU-Next setup failed!"
+        exit 1
+    fi
+    
+    print_info "KernelSU-Next applied successfully!"
 }
 
 # Function to clone SuSFS
@@ -147,40 +176,6 @@ clone_susfs() {
     unset GIT_TERMINAL_PROMPT
     print_info "SuSFS cloned successfully!"
     return 0
-}
-
-# Function to apply KernelSU-Next to kernel
-apply_kernelsu() {
-    print_info "Applying KernelSU-Next to kernel source..."
-    
-    cd "${KERNEL_DIR}"
-    
-    # Create symbolic link for KernelSU-Next in kernel drivers
-    if [ -L "drivers/kernelsu" ]; then
-        print_warn "Removing existing KernelSU-Next symlink..."
-        rm -f drivers/kernelsu
-    fi
-    
-    ln -sf "${WORK_DIR}/KernelSU/kernel" drivers/kernelsu
-    
-    # Modify drivers/Makefile to include KernelSU-Next
-    if ! grep -q "kernelsu" drivers/Makefile; then
-        print_info "Adding KernelSU-Next to drivers/Makefile..."
-        echo "obj-\$(CONFIG_KSU) += kernelsu/" >> drivers/Makefile
-    else
-        print_warn "KernelSU-Next already in drivers/Makefile"
-    fi
-    
-    # Modify drivers/Kconfig to include KernelSU-Next
-    if ! grep -q "kernelsu/Kconfig" drivers/Kconfig; then
-        print_info "Adding KernelSU-Next to drivers/Kconfig..."
-        # Insert before the final 'endmenu' in drivers/Kconfig
-        sed -i '/^endmenu$/i source "drivers/kernelsu/Kconfig"' drivers/Kconfig
-    else
-        print_warn "KernelSU-Next already in drivers/Kconfig"
-    fi
-    
-    print_info "KernelSU-Next applied successfully!"
 }
 
 # Function to apply SuSFS to kernel
@@ -278,7 +273,7 @@ configure_kernel() {
     # Enable SuSFS if configuration exists and SuSFS was cloned
     if [ -d "${WORK_DIR}/susfs4ksu" ]; then
         if grep -q "CONFIG_KSU_SUSFS" "${OUTPUT_DIR}/.config" 2>/dev/null || \
-           [ -f "${WORK_DIR}/KernelSU/kernel/Kconfig" ] && grep -q "KSU_SUSFS" "${WORK_DIR}/KernelSU/kernel/Kconfig"; then
+           [ -f "${KERNEL_DIR}/KernelSU-Next/kernel/Kconfig" ] && grep -q "KSU_SUSFS" "${KERNEL_DIR}/KernelSU-Next/kernel/Kconfig"; then
             print_info "Enabling SuSFS configuration..."
             echo "CONFIG_KSU_SUSFS=y" >> "${OUTPUT_DIR}/.config"
         fi
