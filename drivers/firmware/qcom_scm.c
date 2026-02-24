@@ -2641,6 +2641,7 @@ static void  __qcom_multi_smc_init(struct qcom_scm *__scm,
 	int ret = 0, irq;
 
 	spin_lock_init(&__scm->waitq.idr_lock);
+	idr_destroy(&__scm->waitq.idr);
 	idr_init(&__scm->waitq.idr);
 	if (of_device_is_compatible(__scm->dev->of_node, "qcom,scm-v1.1")) {
 		INIT_WORK(&__scm->waitq.scm_irq_work, scm_irq_work);
